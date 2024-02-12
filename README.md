@@ -1,1 +1,1 @@
-# Textual_algorithms
+# Textual-Algorithms
