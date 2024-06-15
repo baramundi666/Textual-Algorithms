@@ -1,0 +1,1 @@
+grep -oP '(?:ATG|ATA)(?:[ATCG]{3})*?(?:TAA|TAG|AGA|AGG)'

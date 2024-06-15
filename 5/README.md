@@ -2,10 +2,9 @@
 
 ## Wprowadzenie
 
-DNA, czyli kwas dezoksyrybonukleinowy, zawiera informacje o tym, jak
-budować białka. Łańcuchy DNA składają się z *nukleotydów*. Nukleotydy
-występują w 4 rodzajach. Sekwencję nukleotydów, w której są zakodowane
-informacje o tym, jak zbudować 1 białko, nazywamy *genem*.
+DNA, czyli kwas dezoksyrybonukleinowy, zawiera instrukcje syntezy
+białek. Łańcuchy DNA składają się z *nukleotydów*. Nukleotydy
+występują w 4 rodzajach. Sekwencję nukleotydów nazywamy *genem*.
 
 *Kod genetyczny* to reguły tłumaczenia dowolnej sekwencji nukleotydów
 na sekwencję aminokwasów w białku. Symbolami kodu genetycznego są
@@ -176,8 +175,7 @@ do pliku `geny.txt`
 Polecenie `sort -u` wypisuje do wyjścia 1 kopię każdego wiersza
 wejścia. Dodatkowo sortuje te wiersze w porządku leksykograficznym.
 
-1. Proszę opracować test jednostkowy pakietu
-`github.com/MarcinCiura/AT-lab/5/suffixarray`
+1. Proszę opracować test jednostkowy pakietu **index/suffixarray**
 
 W teście należy:
 
@@ -301,32 +299,6 @@ należy wpisać **867**
 
 # Zadanie 2
 
-Proszę napisać program, który znajduje wszystkie sekwencje DNA
-mitochondrialnego wspólne dla wszystkich zwierząt wybranych przez
-osoby z państwa grupy. Podkreślam, że chodzi o sekwencje DNA, a nie
-o geny :-)
-
-Program ma wypisać tyle wierszy, ile znajdzie wspólnych sekwencji DNA.
-W każdym wierszu ma wypisać kolejno: długość wspólnej sekwencji DNA,
-znak spacji, wspólną sekwencję DNA
-
-Wynik działania programu można obejrzeć, wydając polecenie
-
-```
-./nazwa_programu | sort -k1 -n -r | less
-```
-
-Polecenie `sort -k1 -n -r` sortuje wejście według kluczy zawartych w
-1. kolumnie, porównując te klucze jako liczby całkowite, i wypisuje
-wynik w kolejności od większych do mniejszych kluczy
-
-Wyniki działania programu można sprawdzić, kopiując dowolną wspólną
-sekwencję DNA do schowka i wydając polecenie
-
-```
-grep -l skopiowana_sekwencja_DNA *.txt
-```
-
-Opcja `-l` oznacza: wypisz nazwy tych plików, których zawartość pasuje
-do danego regexpa, ale nie wypisuj wierszy, które pasują do tego
-regexpa
+Proszę napisać program, który znajduje najdłuższą sekwencję DNA
+mitochondrialnego wspólną dla wszystkich zwierząt wybranych przez
+osoby z państwa grupy :-)

@@ -1,5 +1,4 @@
-/*
- * Based on Sergey Makagonov's Java class ST, available at
+/* Based on Sergey Makagonov's Java class ST, available at
  * https://gist.github.com/makagonov/22ab3675e3fc0031314e8535ffcbee2c
  * and on his C++ code, available at
  * https://gist.github.com/makagonov/f7ed8ce729da72621b321f0ab547debb
@@ -25,6 +24,7 @@
  * LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
  * OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
  * WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+ *
  */
 
 package suffixtree
@@ -40,257 +40,223 @@ const (
 )
 
 type node struct {
-	start, end  int
-	suffixStart int // Used only in leaves
-	suffixLink  int
-	edges       map[byte]int
+	start, end int
+	suffixLink int
+	edges      map[byte]int
 }
 
-// Index służy jako indeks łańcucha znaków.
-// Pole `text` to indeksowany łańcuch.
-// Pole `nodes` to tablica sufiksów łańcucha `text`.
-// Pole `root` to korzeń drzewa sufiksów `nodes`.
-// Pozostałe pola przydają się podczas budowania tablicy sufiksów
-type Index struct {
-	text                                          []byte
-	nodes                                         []node
-	root, position, currentNode, needSuffixLink   int
-	backlog, activeNode, activeLength, activeEdge int
+type SuffixTree struct {
+	nodes                                                []node
+	text                                                 []byte
+	root, position, currentNode, needSuffixLink, backlog int
+	activeNode, activeLength, activeEdge                 int
 }
 
-// New tworzy indeks łańcucha ‘text‘
-func New(text []byte) *Index {
-	ix := &Index{
-		text:     make([]byte, len(text)+1), // Last byte is a sentinel
+func New(text []byte) *SuffixTree {
+	st := &SuffixTree{
 		nodes:    []node{},
+		text:     make([]byte, len(text)+1), // Last byte is a sentinel
 		position: -1,
 	}
-	copy(ix.text, text)
-	ix.root = ix.newNode(-1, -1)
-	ix.activeNode = ix.root
+	copy(st.text, text)
+	st.root = st.newNode(-1, -1)
+	st.activeNode = st.root
 	for _, c := range text {
-		ix.addChar(c)
+		st.addChar(c)
 	}
-	ix.addSuffixStartToLeaves(ix.root, len(text))
-	return ix
+	return st
 }
 
-func (ix *Index) addSuffixStartToLeaves(v int, suffixStart int) {
-	if ix.IsLeaf(v) {
-		ix.nodes[v].suffixStart = suffixStart
-	}
-	for _, w := range ix.Edges(v) {
-		ix.addSuffixStartToLeaves(w, suffixStart-ix.edgeLength(&ix.nodes[w]))
-	}
+func (st *SuffixTree) NumNodes() int {
+	return len(st.nodes)
 }
 
-// NumNodes zwraca liczbę węzłów drzewa sufiksów `ix.nodes`
-func (ix *Index) NumNodes() int {
-	return len(ix.nodes)
+func (st *SuffixTree) Root() int {
+	return st.root
 }
 
-// Root zwraca korzeń drzewa sufiksów `ix.nodes`
-func (ix *Index) Root() int {
-	return ix.root
+func (st *SuffixTree) Edges(node int) *map[byte]int {
+	return &st.nodes[node].edges
 }
 
-// Edges zwraca mapę. Elementy tej mapy opisują te krawędzie, które
-// wychodzą z wierzchołka `node` drzewa sufiksów `ix.nodes`. Każdy
-// klucz tej mapy jest pierwszym znakiem etykiety pewnej krawędzi
-// drzewa sufiksów `ix.nodes`, która wychodzi z wierzchołka `node`. Ta
-// wartość mapy, która odpowiada temu kluczowi, jest tym wierzchołkiem
-// drzewa sufiksów `ix.nodes`, do którego prowadzi ta krawędź
-func (ix *Index) Edges(node int) map[byte]int {
-	return ix.nodes[node].edges
+func (st *SuffixTree) IsLeaf(node int) bool {
+	return (len(*st.Edges(node)) == 0)
 }
 
-// EdgeLabel zwraca etykietę tej krawędzi, która prowadzi do
-// wierzchołka `node` drzewa sufiksów `ix.nodes`
-func (ix *Index) EdgeLabel(node int) string {
-	return string(ix.text[ix.nodes[node].start:min(ix.nodes[node].end, ix.position+1)])
-}
-
-// IsLeaf zwraca true, jeśli węzeł `node` jest liściem drzewa sufiksów
-// `ix.nodes`
-func (ix *Index) IsLeaf(node int) bool {
-	return (len(ix.Edges(node)) == 0)
-}
-
-// SuffixStart zwraca indeks tej pozycji, od której zaczyna się ten
-// sufiks łańcucha ‘ix.text‘, który jest równy połączonym etykietom
-// krawędzi na ścieżce od korzenia do liścia `node` drzewa sufiksów
-// `ix.nodes`
-func (ix *Index) SuffixStart(node int) int {
-	if !ix.IsLeaf(node) {
+func (st *SuffixTree) SuffixStart(node int) int {
+	if !st.IsLeaf(node) {
 		log.Fatalf("SuffixStart(%d); not a leaf", node)
 	}
-	return ix.nodes[node].suffixStart
+	return st.nodes[node].start
 }
 
-// LookupAll zwraca indeksy wszystkich tych pozycji, od których
-// zaczynają się wystąpienia wzorca ‘pat‘ w łańcuchu ‘ix.text‘
-func (ix *Index) LookupAll(pat []byte) []int {
-	// Based on Listing 6.14 from the book "Algorytmika
-	// praktyczna. Nie tylko dla mistrzów" by Piotr Stańczyk,
-	// Wydawnictwo Naukowe PWN, Warszawa 2009
-	v := ix.root
+// Based on Listing 6.14 from the book "Algorytmika praktyczna. Nie tylko
+// dla mistrzów" by Piotr Stańczyk, Wydawnictwo Naukowe PWN, Warszawa 2009
+func (st *SuffixTree) LookupAll(pat []byte) []int {
+	v := st.root
 	patLen := 0
 	for i := 0; i < len(pat); {
 		var ok bool
-		if v, ok = ix.Edges(v)[pat[i]]; !ok {
+		v, ok = st.nodes[v].edges[pat[i]]
+		if !ok {
 			return []int{}
 		}
-		patLen += ix.edgeLength(&ix.nodes[v])
-		for x := ix.nodes[v].start; x < ix.nodes[v].end && i < len(pat); {
-			if pat[i] != ix.text[x] {
+		patLen += st.edgeLength(&st.nodes[v])
+		for x := st.nodes[v].start; x < st.nodes[v].end && i < len(pat); {
+			if pat[i] != st.text[x] {
 				return []int{}
 			}
 			i++
 			x++
 		}
 	}
-	return ix.dfs([]int{}, v, len(ix.text)-1-patLen)
+	return st.dfs([]int{}, v, len(st.text)-1-patLen)
 }
 
-func (ix *Index) dfs(r []int, v, pos int) []int {
-	if ix.IsLeaf(v) {
+func (st *SuffixTree) dfs(r []int, v, pos int) []int {
+	if len(st.nodes[v].edges) == 0 {
 		r = append(r, pos)
 	}
-	for _, w := range ix.Edges(v) {
-		r = ix.dfs(r, w, pos-ix.edgeLength(&ix.nodes[w]))
+	for _, w := range st.nodes[v].edges {
+		r = st.dfs(r, w, pos-st.edgeLength(&st.nodes[w]))
 	}
 	return r
 }
 
-func (ix *Index) newNode(start, end int) int {
+func (st *SuffixTree) newNode(start, end int) int {
 	n := node{start: start, end: end, edges: make(map[byte]int)}
-	ix.nodes = append(ix.nodes, n)
-	return len(ix.nodes) - 1
+	st.nodes = append(st.nodes, n)
+	return len(st.nodes) - 1
 }
 
-func (ix *Index) edgeLength(n *node) int {
-	return min(n.end, ix.position+1) - n.start
+func (st *SuffixTree) edgeLength(n *node) int {
+	return min(n.end, st.position+1) - n.start
 }
 
-func (ix *Index) addSuffixLink(node int) {
-	if ix.needSuffixLink > 0 {
-		ix.nodes[ix.needSuffixLink].suffixLink = node
+func (st *SuffixTree) addSuffixLink(node int) {
+	if st.needSuffixLink > 0 {
+		st.nodes[st.needSuffixLink].suffixLink = node
 	}
-	ix.needSuffixLink = node
+	st.needSuffixLink = node
 }
 
-func (ix *Index) walkDown(next int) bool {
-	if ix.activeLength >= ix.edgeLength(&ix.nodes[next]) {
-		ix.activeEdge += ix.edgeLength(&ix.nodes[next])
-		ix.activeLength -= ix.edgeLength(&ix.nodes[next])
-		ix.activeNode = next
+func (st *SuffixTree) walkDown(next int) bool {
+	if st.activeLength >= st.edgeLength(&st.nodes[next]) {
+		st.activeEdge += st.edgeLength(&st.nodes[next])
+		st.activeLength -= st.edgeLength(&st.nodes[next])
+		st.activeNode = next
 		return true
 	}
 	return false
 }
 
-func (ix *Index) actE() byte {
-	return ix.text[ix.activeEdge]
+func (st *SuffixTree) actE() byte {
+	return st.text[st.activeEdge]
 }
 
-func (ix *Index) addChar(c byte) {
-	ix.position++
-	ix.needSuffixLink = -1
-	ix.backlog++
-	for ix.backlog > 0 {
-		if ix.activeLength == 0 {
-			ix.activeEdge = ix.position
+func (st *SuffixTree) addChar(c byte) {
+	st.position++
+	st.needSuffixLink = -1
+	st.backlog++
+	for st.backlog > 0 {
+		if st.activeLength == 0 {
+			st.activeEdge = st.position
 		}
-		if _, ok := ix.Edges(ix.activeNode)[ix.actE()]; !ok {
-			leaf := ix.newNode(ix.position, oo)
-			ix.Edges(ix.activeNode)[ix.actE()] = leaf
-			ix.addSuffixLink(ix.activeNode) // rule 2
+		if _, ok := st.nodes[st.activeNode].edges[st.actE()]; !ok {
+			leaf := st.newNode(st.position, oo)
+			st.nodes[st.activeNode].edges[st.actE()] = leaf
+			st.addSuffixLink(st.activeNode) // rule 2
 		} else {
-			next := ix.Edges(ix.activeNode)[ix.actE()]
-			if ix.walkDown(next) {
+			next := st.nodes[st.activeNode].edges[st.actE()]
+			if st.walkDown(next) {
 				continue // observation 2
 			}
-			if ix.text[ix.nodes[next].start+ix.activeLength] == c { // observation 1
-				ix.activeLength++
-				ix.addSuffixLink(ix.activeNode) // observation 3
+			if st.text[st.nodes[next].start+st.activeLength] == c { // observation 1
+				st.activeLength++
+				st.addSuffixLink(st.activeNode) // observation 3
 				break
 			}
-			split := ix.newNode(ix.nodes[next].start, ix.nodes[next].start+ix.activeLength)
-			ix.Edges(ix.activeNode)[ix.actE()] = split
-			leaf := ix.newNode(ix.position, oo)
-			ix.Edges(split)[c] = leaf
-			ix.nodes[next].start += ix.activeLength
-			ix.Edges(split)[ix.text[ix.nodes[next].start]] = next
-			ix.addSuffixLink(split) // rule 2
+			split := st.newNode(st.nodes[next].start, st.nodes[next].start+st.activeLength)
+			st.nodes[st.activeNode].edges[st.actE()] = split
+			leaf := st.newNode(st.position, oo)
+			st.nodes[split].edges[c] = leaf
+			st.nodes[next].start += st.activeLength
+			st.nodes[split].edges[st.text[st.nodes[next].start]] = next
+			st.addSuffixLink(split) // rule 2
 		}
-		ix.backlog--
-		if ix.activeNode == ix.root && ix.activeLength > 0 { // rule 1
-			ix.activeLength--
-			ix.activeEdge = ix.position - ix.backlog + 1
+		st.backlog--
+		if st.activeNode == st.root && st.activeLength > 0 { // rule 1
+			st.activeLength--
+			st.activeEdge = st.position - st.backlog + 1
 		} else {
-			if ix.nodes[ix.activeNode].suffixLink > 0 { // rule 3
-				ix.activeNode = ix.nodes[ix.activeNode].suffixLink
+			if st.nodes[st.activeNode].suffixLink > 0 { // rule 3
+				st.activeNode = st.nodes[st.activeNode].suffixLink
 			} else {
-				ix.activeNode = ix.root
+				st.activeNode = st.root
 			}
 		}
 	}
 }
 
-func (ix *Index) Print() {
+func (st *SuffixTree) Print() {
 	fmt.Println("digraph {")
 	fmt.Println("\trankdir = LR;")
 	fmt.Println("\tedge [arrowsize=0.4,fontsize=10];")
 	fmt.Println("\tnode1 [label=\"\",style=filled,fillcolor=lightgrey,shape=circle,width=.1,height=.1];")
 
 	fmt.Println("//------leaves------")
-	ix.printLeaves(ix.root)
+	st.printLeaves(st.root)
 
 	fmt.Println("//------internal nodes------")
-	ix.printInternalNodes(ix.root)
+	st.printInternalNodes(st.root)
 
 	fmt.Println("//------edges------")
-	ix.printEdges(ix.root)
+	st.printEdges(st.root)
 
 	fmt.Println("//------suffix links------")
-	ix.printSuffixLinks(ix.root)
+	st.printSuffixLinks(st.root)
 
 	fmt.Println("}")
 }
 
-func (ix *Index) printLeaves(x int) {
-	if ix.IsLeaf(x) {
-		fmt.Printf("\tnode%d [label=\"%d\",shape=point];\n", x, ix.SuffixStart(x))
+func (st *SuffixTree) printLeaves(x int) {
+	if len(st.nodes[x].edges) == 0 {
+		fmt.Printf("\tnode%d [label=\"\",shape=point];\n", x)
 	} else {
-		for _, child := range ix.Edges(x) {
-			ix.printLeaves(child)
+		for _, child := range st.nodes[x].edges {
+			st.printLeaves(child)
 		}
 	}
 }
 
-func (ix *Index) printInternalNodes(x int) {
-	if x != ix.root && !ix.IsLeaf(x) {
+func (st *SuffixTree) printInternalNodes(x int) {
+	if x != st.root && len(st.nodes[x].edges) > 0 {
 		fmt.Printf("\tnode%d [label=\"\",style=filled,fillcolor=lightgrey,shape=circle,width=.07,height=.07];\n", x)
 	}
-	for _, child := range ix.Edges(x) {
-		ix.printInternalNodes(child)
+	for _, child := range st.nodes[x].edges {
+		st.printInternalNodes(child)
 	}
 }
 
-func (ix *Index) printEdges(x int) {
-	for _, child := range ix.Edges(x) {
-		fmt.Printf("\tnode%d -> node%d [label=\"%s\",weight=3];\n", x, child, ix.EdgeLabel(child))
+func (st *SuffixTree) printEdges(x int) {
+	for _, child := range st.nodes[x].edges {
+		fmt.Printf("\tnode%d -> node%d [label=\"%s\",weight=3];\n", x, child, st.edgeString(child))
 	}
-	for _, child := range ix.Edges(x) {
-		ix.printEdges(child)
+	for _, child := range st.nodes[x].edges {
+		st.printEdges(child)
 	}
 }
 
-func (ix *Index) printSuffixLinks(x int) {
-	if ix.nodes[x].suffixLink > 0 {
-		fmt.Printf("\tnode%d -> node%d [label=\"\",weight=1,style=dotted];\n", x, ix.nodes[x].suffixLink)
+func (st *SuffixTree) printSuffixLinks(x int) {
+	if st.nodes[x].suffixLink > 0 {
+		fmt.Printf("\tnode%d -> node%d [label=\"\",weight=1,style=dotted];\n", x, st.nodes[x].suffixLink)
 	}
-	for _, child := range ix.Edges(x) {
-		ix.printSuffixLinks(child)
+	for _, child := range st.nodes[x].edges {
+		st.printSuffixLinks(child)
 	}
+}
+
+// Helper function to get the edge label based on node and character
+func (st *SuffixTree) edgeString(x int) string {
+	return string(st.text[st.nodes[x].start:min(st.nodes[x].end, st.position+1)])
 }

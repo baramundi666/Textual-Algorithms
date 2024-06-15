@@ -1,0 +1,6 @@
+github.com/BobuSumisu/aho-corasick v1.0.3 h1:uuf+JHwU9CHP2Vx+wAy6jcksJThhJS9ehR8a+4nPE9g=
+github.com/BobuSumisu/aho-corasick v1.0.3/go.mod h1:hm4jLcvZKI2vRF2WDU1N4p/jpWtpOzp3nLmi9AzX/XE=
+github.com/MarcinCiura/AT-lab v0.0.0-20240522102950-b3c593092303 h1:Od2FYJGfKcCH7jf7v/PiXGvwcvRFZrx0AC4xhNBScAA=
+github.com/MarcinCiura/AT-lab v0.0.0-20240522102950-b3c593092303/go.mod h1:99i01vnr9GWM1PqVEmEAZEGNCvjojA3k3rUuNb8UJOg=
+github.com/cloudflare/ahocorasick v0.0.0-20210425175752-730270c3e184 h1:8yL+85JpbwrIc6m+7N1iYrjn/22z68jwrTIBOJHNe4k=
+github.com/cloudflare/ahocorasick v0.0.0-20210425175752-730270c3e184/go.mod h1:tGWUZLZp9ajsxUOnHmFFLnqnlKXsCn6GReG4jAD59H0=
