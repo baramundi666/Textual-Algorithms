@@ -31,13 +31,12 @@ func TestPodziel(t *testing.T) {
 	for _, d := range data {
 		got := Split(d.in)
 		if fmt.Sprintf("%#v", got) != fmt.Sprintf("%#v", d.want) {
-			t.Errorf("Split(%#v) == %#v want %#v",
-				d.in, got, d.want)
+			t.Errorf("got %#v; want %#v", got, d.want)
 		}
 	}
 }
 
-func TestIncrementIfBothIn(t *testing.T) {
+func TestAddIfIn(t *testing.T) {
 	words := map[string]bool{
 		"akt": true,
 		"or":  true,
@@ -57,10 +56,9 @@ func TestIncrementIfBothIn(t *testing.T) {
 	}
 	for _, d := range data {
 		got := map[string]int{}
-		IncrementIfBothIn(d.in, words, &got)
+		AddIfIn(d.in, words, &got)
 		if !reflect.DeepEqual(got, d.want) {
-			t.Errorf("IncrementIfBothIn(%#v) == %#v want %#v",
-				d.in, got, d.want)
+			t.Errorf("got %#v; want %#v", got, d.want)
 		}
 	}
 }
@@ -82,8 +80,7 @@ func TestSort(t *testing.T) {
 	for _, d := range data {
 		got := Sort(d.in)
 		if !reflect.DeepEqual(got, d.want) {
-			t.Errorf("Sort(%#v) == %#v want %#v",
-				d.in, got, d.want)
+			t.Errorf("got %#v; want %#v", got, d.want)
 		}
 	}
 }
